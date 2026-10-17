@@ -1,0 +1,14 @@
+# The eval itself needs only Inspect; everything else is per-guardrail.
+inspect-ai>=0.3.100
+
+# For `hf:` guardrails (a classifier run through a transformers pipeline).
+#   transformers>=4.40
+#   torch>=2.0
+
+# For `onnx:` guardrails (a classifier shipped as ONNX).
+#   onnxruntime>=1.17
+#   transformers>=4.40   # tokenizer only
+
+# Optional. Without it the dataset is fetched over the HF dataset-viewer API,
+# which needs nothing beyond the standard library.
+#   datasets>=2.18
