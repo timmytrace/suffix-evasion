@@ -2,6 +2,8 @@
 
 *Does a prompt-injection guardrail break when you append ordinary text to an attack?*
 
+[![tests](https://github.com/timmytrace/suffix-evasion/actions/workflows/ci.yml/badge.svg)](https://github.com/timmytrace/suffix-evasion/actions/workflows/ci.yml)
+
 An [Inspect](https://inspect.aisi.org.uk/) eval by [Timilehin Owolabi](https://timlinconnect.com).
 MIT licensed — run it against your own guardrail, and tell me what you find.
 
@@ -163,7 +165,7 @@ Writeups: [the dampener](https://timlinconnect.com/blog/the-discount-i-was-givin
 
 ```
 pip install -r requirements.txt
-pytest suffix_evasion/test_suffix_evasion.py    # 13 tests, no model needed
+pytest suffix_evasion/                          # 18 tests, no model or network needed
 ```
 
 The eval runs against the built-in reference guardrail with nothing else installed. A real

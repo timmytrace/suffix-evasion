@@ -1,0 +1,61 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Dependency drift is the realistic failure mode for an eval nobody is
+  # actively editing: Inspect moves, the eval stops working, and the repository
+  # looks maintained right up until somebody tries to run it. A weekly run
+  # catches that without anyone remembering to check.
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      # No network, no model, no credentials. The integration test runs a real
+      # inspect_ai.eval() over hand-written prompts, so it covers the solver,
+      # scorer and metric contracts - the things that break when Inspect moves
+      # - without a bad afternoon at someone else's API turning this red.
+      - name: Tests
+        run: pytest suffix_evasion/ -v
+
+  # The one thing the offline tests cannot cover: fetching a dataset and
+  # running the task people actually invoke. Kept separate and non-blocking,
+  # because a third-party API being down is not a defect in this repository -
+  # but a silent failure here means the quickstart in the README is broken,
+  # which is worth seeing.
+  smoke:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+      - name: The README quickstart, end to end
+        run: inspect eval suffix_evasion/task.py --model none -T attacks=3
