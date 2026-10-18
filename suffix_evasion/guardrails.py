@@ -214,7 +214,11 @@ class OnnxGuardrail:
         unsafe_labels: tuple[str, ...] = ("injection", "jailbreak", "unsafe", "label_1"),
         threshold: float = 0.5,
     ) -> None:
-        self.name = name or f"onnx:{os.path.basename(path.rstrip('/\\'))}"
+        # Computed outside the f-string: a backslash in an f-string expression
+        # is a SyntaxError before Python 3.12, and this module is meant to be
+        # importable by anyone who wants to check the numbers.
+        folder = os.path.basename(path.rstrip("/\\"))
+        self.name = name or f"onnx:{folder}"
         self.path = path
         self.unsafe_labels = tuple(label.lower() for label in unsafe_labels)
         self.threshold = threshold
