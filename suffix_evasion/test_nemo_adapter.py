@@ -93,7 +93,31 @@ def test_self_test_refuses_a_guardrail_that_blocks_nothing():
     with pytest.raises(RuntimeError) as excinfo:
         _run(adapter.blocks("anything at all"))
 
-    assert "failing" in str(excinfo.value).lower() or "not blocked" in str(excinfo.value).lower()
+    assert "nothing was blocked" in str(excinfo.value).lower()
+
+
+def test_a_live_rail_aimed_elsewhere_is_diagnosed_not_condemned():
+    """
+    Observed against nemoguardrails 0.24.1.
+
+    `jailbreak detection heuristics` passes a plain-English instruction
+    override and blocks degenerate repeated-token input: it measures
+    perplexity, not intent. That is a working rail pointed at a different
+    attack class, and calling it broken would be as wrong as publishing a
+    release rate against it.
+    """
+    # Blocks only low-entropy padding, exactly as the real rail does.
+    rails = _FakeRails(lambda p: set(p) <= {"a", " "})
+    adapter = _adapter(rails)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        _run(adapter.blocks("anything at all"))
+
+    message = str(excinfo.value).lower()
+    assert "degenerate" in message
+    assert "wrong thing" in message or "different phenomenon" in message
+    # And it must not accuse a working rail of being unreachable.
+    assert "unreachable" not in message
 
 
 def test_self_test_refuses_a_guardrail_that_blocks_everything():
