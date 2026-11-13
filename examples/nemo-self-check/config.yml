@@ -1,0 +1,20 @@
+# NeMo Guardrails with `self check input`: the fallback if input rails turn
+# out to require a configured model.
+#
+# This one definitely costs money. The rail asks an LLM, once per prompt,
+# whether the prompt should be allowed. A run of this eval sends every attack
+# through every treatment and control arm, so budget roughly one call per
+# sample per arm — on a small model that is cents, but it is not zero, and it
+# is worth knowing before you start rather than afterwards.
+#
+# Swap the model for whichever provider you have a key for. The engine names
+# come from NeMo's own configuration guide.
+models:
+  - type: main
+    engine: openai
+    model: gpt-4o-mini
+
+rails:
+  input:
+    flows:
+      - self check input

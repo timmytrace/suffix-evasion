@@ -272,15 +272,23 @@ class NeMoGuardrailsAdapter:
 
     Two things about this library shape the adapter.
 
-    **Its rails fail open.** The documentation is explicit: when a configured
-    detector cannot be reached, the rail allows the request rather than
-    blocking it. So "nothing was blocked" and "the detector was down" produce
-    byte-identical output, and an eval that cannot tell them apart would
-    publish a 100% release rate for an outage. That is why `self_test` exists
-    and why it defaults to on: before any measurement, the adapter sends a
-    prompt that must be blocked and one that must pass, and raises if either
-    comes back wrong. A number this harness cannot stand behind should not be
-    produced at all.
+    **A broken detector fails in both directions, depending on how it broke.**
+
+    NVIDIA document that an unreachable detector causes the rail to allow the
+    request - fail open, so every attack is released and the eval reports a
+    100% release rate for an outage.
+
+    Observed on 0.24.1, the opposite also happens: with
+    `jailbreak detection heuristics` configured and `torch` not installed, the
+    action raises and `check_async` returns BLOCKED. Fail closed, so every
+    prompt is stopped and the eval reports a guardrail with a perfect score
+    and no false-positive cost.
+
+    Both are catastrophic for a measurement and neither announces itself. So
+    the self-test sends two prompts, not one: a blatant override that must be
+    blocked, and an ordinary support question that must pass. One canary
+    catches the open failure, the other catches the closed one. The missing-
+    torch case above is caught by the second, which is the reason it is there.
 
     **There is no single "a rail fired" field.** `check_async` is the direct
     route - it runs the rails without generating a response, and returns a

@@ -196,38 +196,56 @@ there is nothing to measure.
 
 ### Why this adapter self-tests before it measures
 
-**NeMo's rails fail open.** From NVIDIA's own documentation: when a configured detector
-cannot be reached, the rail allows the request rather than blocking it.
+**A broken detector fails in both directions, and neither announces itself.**
 
-That means a guardrail with an unreachable detector and a guardrail that blocks nothing
-produce identical output. Run an eval across that and you get a 100% release rate — a
-statement about an outage, published as a measurement of a product.
+NVIDIA document one direction: when a configured detector cannot be reached, the rail
+allows the request. Fail open — every attack is released, and the eval reports a 100%
+release rate for what is actually an outage.
 
-So before any sample is scored, the adapter sends two prompts: a blatant instruction
-override that must be blocked, and an ordinary support question that must pass. If either
-comes back wrong it raises and the run stops. The cost is two evaluations per run; the
-alternative is a number nobody should believe. Pass `self_test=False` if you are
-deliberately measuring a disabled configuration.
+Running it found the other. On 0.24.1, with `jailbreak detection heuristics` configured and
+`torch` not installed, the action raises and `check_async` returns `RailStatus.BLOCKED`:
+
+```
+ModuleNotFoundError: No module named 'torch'
+check_async status: RailStatus.BLOCKED | rail: jailbreak detection heuristics
+```
+
+Fail closed — every prompt is stopped, and the eval reports a guardrail with a perfect
+score and no false-positive cost. A result that would flatter a vendor rather than damage
+one, which is the kind that gets published without anybody checking.
+
+So the self-test sends **two** prompts, not one: a blatant override that must be blocked,
+and an ordinary support question that must pass. One canary catches the open failure, the
+other the closed one. The missing-`torch` case above is caught by the second:
+
+```
+RuntimeError: nemo:nemo-heuristics: self-test failed. An ordinary support question
+was blocked, so this configuration cannot serve as a baseline.
+```
+
+Two evaluations per run, against a number nobody should believe. Pass `self_test=False`
+only if you are deliberately measuring a disabled configuration.
 
 The same reasoning covers version drift: `RailStatus` has moved between releases, so a
 status this adapter does not recognise raises rather than defaulting to "not blocked".
 
-### Known unknowns
+### What running it settled
 
-Stated because the docs did not settle them, and because guessing here would be the kind of
-error this project exists to avoid:
+- **Input rails do run with no LLM.** A config with no `models:` section at all parses and
+  `LLMRails` constructs. The docs do not say this and every example includes a model, so it
+  was worth checking rather than assuming. `examples/nemo-heuristics/` is that config.
+- **`jailbreak detection heuristics` still needs the model.** Without a `server_endpoint` it
+  falls back to in-process detection, which imports `torch` and downloads `gpt2-large`. The
+  config loads for free; the detection does not run for free.
+- **`self check input` is the cheap-to-install path and the metered one** — no extra
+  packages, one LLM call per prompt. `examples/nemo-self-check/` is a working starting
+  point, including the `prompts.yml` that config fails to load without.
 
-- **Whether input rails can run with no LLM configured at all** is unconfirmed. Every
-  documented example includes a `models:` entry, and `self check input` calls an LLM by
-  definition. Assume you need one.
-- **`jailbreak detection heuristics`** needs either a separate heuristics server or
-  in-process `transformers` and `torch`, which downloads `gpt2-large`. NVIDIA describe the
-  in-process path as for testing only.
-- **Generation options (`log`, `output_vars`) raise `ValueError` on Colang 2.x configs.**
-  The adapter prefers `check_async` for this reason and only falls back to reading
-  `log.activated_rails`.
+Still unconfirmed: generation options (`log`, `output_vars`) are documented to raise
+`ValueError` on Colang 2.x configs. The adapter prefers `check_async` for this reason and
+only falls back to `log.activated_rails`, so it should not matter here.
 
-Verified against the documentation as of November 2026 for release 0.24.x. Check
+Verified empirically against **nemoguardrails 0.24.1** in November 2026. Check
 `pip show nemoguardrails` before trusting any of the above.
 
 ## Contributing a guardrail
