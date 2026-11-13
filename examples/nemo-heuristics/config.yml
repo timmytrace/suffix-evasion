@@ -1,0 +1,16 @@
+# Minimal NeMo Guardrails config: one input rail, no LLM.
+#
+# This exists to answer a question the documentation does not: can NeMo run
+# input rails with no `models:` section at all? If it can, this eval runs
+# against NeMo for free. If it cannot, the cheapest working option is
+# `self check input`, which calls an LLM once per prompt.
+#
+# `jailbreak detection heuristics` is perplexity-based rather than an LLM
+# call. In-process it needs `transformers` and `torch` and downloads
+# gpt2-large; NVIDIA describe that path as for testing only, and the
+# production path is a separate heuristics server via
+# rails.config.jailbreak_detection.server_endpoint.
+rails:
+  input:
+    flows:
+      - jailbreak detection heuristics
