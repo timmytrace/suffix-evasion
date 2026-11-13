@@ -177,6 +177,59 @@ for `onnx:`, nothing extra for `http://`.
 > Owolabi, T. (2026). *Suffix evasion: measuring false-positive mitigations as an attack
 > surface in prompt-injection guardrails.* https://github.com/timmytrace/suffix-evasion
 
+## NeMo Guardrails
+
+NVIDIA's NeMo Guardrails is supported directly, because it is open source and self-hosted —
+you test your own deployment, which raises none of the terms-of-service questions a hosted
+API does, and costs nothing.
+
+```bash
+pip install nemoguardrails
+SUFFIX_EVAL_GUARDRAIL=nemo:/path/to/your/nemo/config \
+  inspect eval suffix_evasion/task.py --model none
+```
+
+The path is a directory containing `config.yml`, as NeMo's own `RailsConfig.from_path`
+expects. Use a configuration with an injection or jailbreak input rail enabled —
+`self check input`, `jailbreak detection heuristics` or `jailbreak detection model` — or
+there is nothing to measure.
+
+### Why this adapter self-tests before it measures
+
+**NeMo's rails fail open.** From NVIDIA's own documentation: when a configured detector
+cannot be reached, the rail allows the request rather than blocking it.
+
+That means a guardrail with an unreachable detector and a guardrail that blocks nothing
+produce identical output. Run an eval across that and you get a 100% release rate — a
+statement about an outage, published as a measurement of a product.
+
+So before any sample is scored, the adapter sends two prompts: a blatant instruction
+override that must be blocked, and an ordinary support question that must pass. If either
+comes back wrong it raises and the run stops. The cost is two evaluations per run; the
+alternative is a number nobody should believe. Pass `self_test=False` if you are
+deliberately measuring a disabled configuration.
+
+The same reasoning covers version drift: `RailStatus` has moved between releases, so a
+status this adapter does not recognise raises rather than defaulting to "not blocked".
+
+### Known unknowns
+
+Stated because the docs did not settle them, and because guessing here would be the kind of
+error this project exists to avoid:
+
+- **Whether input rails can run with no LLM configured at all** is unconfirmed. Every
+  documented example includes a `models:` entry, and `self check input` calls an LLM by
+  definition. Assume you need one.
+- **`jailbreak detection heuristics`** needs either a separate heuristics server or
+  in-process `transformers` and `torch`, which downloads `gpt2-large`. NVIDIA describe the
+  in-process path as for testing only.
+- **Generation options (`log`, `output_vars`) raise `ValueError` on Colang 2.x configs.**
+  The adapter prefers `check_async` for this reason and only falls back to reading
+  `log.activated_rails`.
+
+Verified against the documentation as of November 2026 for release 0.24.x. Check
+`pip show nemoguardrails` before trusting any of the above.
+
 ## Contributing a guardrail
 
 The most useful contribution is a column in the results table. A guardrail is one class with
