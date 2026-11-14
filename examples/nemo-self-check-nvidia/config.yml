@@ -1,0 +1,32 @@
+# NeMo Guardrails with `self check input`, backed by an NVIDIA-hosted model.
+#
+# NVIDIA's guardrail, NVIDIA's model. Chosen deliberately: if this combination
+# misses something, the miss belongs to one vendor's stack end to end rather
+# than to a LangChain integration mismatch between two.
+#
+# Unlike `jailbreak detection heuristics`, this rail asks a model whether the
+# prompt should be allowed, so it reads intent rather than perplexity. That is
+# the mechanism worth measuring here — and architecturally it is the closest
+# thing in NeMo to the classifier layer this eval was built around.
+#
+# Needs NVIDIA_API_KEY in the environment and
+# `pip install langchain-nvidia-ai-endpoints`. Free credits at build.nvidia.com.
+#
+# Cost: one model call per prompt, per arm. Start small with `-T attacks=10`.
+# Model names rot fast here. meta/llama-3.3-70b-instruct, llama-3.1-8b-instruct
+# and gemma-3-27b-it all returned 410 Gone with end-of-life dates in 2026, and
+# ChatNVIDIA.get_available_models() still lists them - the catalog is not a
+# statement about what is servable. Check against the live inference endpoint:
+#
+#   GET https://integrate.api.nvidia.com/v1/models   (Bearer $NVIDIA_API_KEY)
+#
+# and expect to change this line periodically.
+models:
+  - type: main
+    engine: nvidia_ai_endpoints
+    model: nvidia/nemotron-3.5-bolt-e4b
+
+rails:
+  input:
+    flows:
+      - self check input
