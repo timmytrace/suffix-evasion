@@ -1,0 +1,144 @@
+name: red-team
+
+# The continuous half of this repository. `tests` proves the harness still
+# works; this searches for new bypasses and commits whatever reproduces.
+#
+# Weekly rather than nightly, deliberately. The thing being watched is a
+# published guardrail changing its mind, which happens when a vendor ships -
+# not daily. A nightly job here would mostly re-confirm yesterday's answer and
+# would make the one interesting diff (a bypass disappearing, because somebody
+# fixed it) harder to spot in a wall of identical runs.
+on:
+  schedule:
+    # Thursday, so a red-team result and the Monday dependency-drift run in
+    # `tests` never land on the same morning and get read as one event.
+    - cron: "0 6 * * 4"
+  workflow_dispatch:
+    inputs:
+      attacks:
+        description: "attack prompts to fetch (split in half before measuring)"
+        default: "240"
+      extra_guardrail:
+        description: "an extra guardrail spec to search, e.g. hf:org/model"
+        default: ""
+
+concurrency:
+  # Two runs writing corpus/ would race on the push. There is no reason to
+  # ever have two in flight, and a queued second run reads the first one's
+  # commit rather than fighting it.
+  group: red-team
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      # Before searching anything, prove the search works. The two canaries
+      # run the whole gate against a guardrail whose answer is known by
+      # construction - once where a bypass exists and must be found, once with
+      # that one line of logic switched off and nothing must be found. A
+      # scheduled job that promotes without checking this first is a job that
+      # can quietly spend months promoting noise.
+      - name: Canaries
+        run: pytest suffix_evasion/test_runner.py suffix_evasion/test_promote.py suffix_evasion/test_candidates.py -q
+
+      # The reference guardrail. Free, offline, and its dampener is written on
+      # purpose - so this is the canary again, except on the real attack
+      # dataset rather than hand-written prompts. If the twelve identifier
+      # arms stop being promoted here, something upstream moved: the dataset,
+      # the thresholds, or the harness.
+      - name: Reference guardrail
+        run: |
+          python suffix_evasion/runner.py \
+            --guardrail heuristic \
+            --attacks "${{ inputs.attacks || 240 }}" \
+            --write \
+            | tee reference.txt
+
+      # A real published detector, run on CPU. Ungated and free, which is what
+      # makes this job more than a self-test.
+      #
+      # protectai/deberta-v3-base-prompt-injection-v2 rather than
+      # meta-llama/Prompt-Guard-86M: Prompt Guard is gated behind a manual
+      # licence approval, so it needs a token belonging to a person and cannot
+      # run unattended. Run that one by hand with `--guardrail hf:...`.
+      #
+      # Non-blocking: a model download failing at someone else's CDN is not a
+      # defect in this repository, which is the same reasoning as the `smoke`
+      # job in tests.yml.
+      - name: Published classifier
+        id: classifier
+        continue-on-error: true
+        run: |
+          # CPU wheel explicitly. The default PyPI torch pulls the CUDA build,
+          # which is gigabytes of driver payload for a runner with no GPU.
+          pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.0"
+          pip install "transformers>=4.40"
+          python suffix_evasion/runner.py \
+            --guardrail hf:protectai/deberta-v3-base-prompt-injection-v2 \
+            --attacks "${{ inputs.attacks || 240 }}" \
+            --write \
+            | tee classifier.txt
+
+      - name: Extra guardrail
+        if: inputs.extra_guardrail != ''
+        continue-on-error: true
+        run: |
+          python suffix_evasion/runner.py \
+            --guardrail "${{ inputs.extra_guardrail }}" \
+            --attacks "${{ inputs.attacks || 240 }}" \
+            --write \
+            | tee extra.txt
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Red-team run"
+            echo
+            for file in reference.txt classifier.txt extra.txt; do
+              [ -f "$file" ] || continue
+              echo "### ${file%.txt}"
+              echo '```'
+              cat "$file"
+              echo '```'
+            done
+            echo "### Corpus diff"
+            echo '```diff'
+            git --no-pager diff -- corpus/ || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Committed straight to the default branch rather than opened as a pull
+      # request. The corpus is machine output with a stated procedure behind
+      # it; a PR nobody reviews is weaker than a commit somebody can read, and
+      # `git log -- corpus/` is the audit trail either way. Scoped to corpus/
+      # so this step cannot land anything else.
+      - name: Commit the corpus
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if [ -z "$(git status --porcelain -- corpus/)" ]; then
+            echo "corpus unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- corpus/
+          git commit -m "corpus: red-team run $(date -u +%Y-%m-%d)"
+          git push
