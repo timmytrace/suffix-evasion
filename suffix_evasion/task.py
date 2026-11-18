@@ -9,6 +9,10 @@ from a different run.
 
     inspect eval suffix_evasion/task.py --model none
     SUFFIX_EVAL_GUARDRAIL=hf:meta-llama/Prompt-Guard-86M inspect eval ...
+    inspect eval suffix_evasion/task.py --model none -T arms=corpus
+
+The third form runs the bypasses `runner.py` has confirmed against this
+guardrail instead of the hand-written set. See runner.py.
 
 No model is called. Inspect still wants a --model argument, hence `--model
 none`; the guardrail is selected with SUFFIX_EVAL_GUARDRAIL (see guardrails.py).
@@ -204,21 +208,54 @@ def suffix_evasion(
     dataset: str = DEFAULT_DATASET,
     attacks: int | None = 50,
     guardrail: str | None = None,
+    arms: str = "curated",
 ):
     """
     Args:
         dataset: HF dataset of labelled prompts (text / label, 1 = attack).
         attacks: how many attack prompts to cross with the suffixes.
         guardrail: overrides SUFFIX_EVAL_GUARDRAIL for this run.
+        arms: "curated" for the hand-written set in suffixes.py, or "corpus"
+            for the bypasses `runner.py` has confirmed against this guardrail.
+
+    `arms=corpus` is how a search result becomes a published measurement. The
+    runner promotes on Thursday and the eval reports it without anyone editing
+    suffixes.py - which is the point of keeping the two halves separate, and
+    the reason the corpus stores each bypass with its own length-matched
+    control rather than leaning on the single shared control arm that works
+    only while every arm is about the same length.
+
+    One thing to ignore under `arms=corpus`: the `all` row. Inspect's grouped
+    metric adds an aggregate over every arm, and a corpus arm set is half
+    treatments and half controls by construction, so that number trends to
+    0.5 no matter what the guardrail did. It is an artefact of the arm set,
+    not a result. Read the per-arm rows against their `control_for__` pairs.
     """
     import os
 
     if guardrail:
         os.environ["SUFFIX_EVAL_GUARDRAIL"] = guardrail
 
+    guard = from_env()
+
+    if arms == "corpus":
+        import corpus  # noqa: PLC0415
+
+        suffixes = corpus.as_suffixes(guard.name)
+        if not suffixes:
+            raise ValueError(
+                f"no confirmed bypasses for {guard.name!r} in corpus/confirmed.json. "
+                "Run suffix_evasion/runner.py --write against it first, or use "
+                "arms=curated for the hand-written set."
+            )
+    elif arms == "curated":
+        suffixes = ALL
+    else:
+        raise ValueError(f"arms must be 'curated' or 'corpus', not {arms!r}")
+
     return Task(
-        dataset=_cross(attack_prompts(dataset, limit=attacks or 50), ALL),
-        solver=probe_guardrail(),
+        dataset=_cross(attack_prompts(dataset, limit=attacks or 50), suffixes),
+        solver=probe_guardrail(guard),
         scorer=held_under_suffix(),
         # Per-suffix, because the aggregate is the one number that cannot
         # answer the question. A single release_rate averages the arms that
