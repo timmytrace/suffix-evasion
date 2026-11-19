@@ -15,7 +15,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -50,7 +50,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -85,7 +85,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -120,7 +120,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -155,7 +155,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -190,7 +190,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -225,7 +225,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -260,7 +260,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -295,7 +295,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -330,7 +330,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -365,7 +365,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
@@ -400,7 +400,7 @@
         "dataset_seed": 11,
         "dataset_limit": 240,
         "first_confirmed": "2026-11-18",
-        "last_confirmed": "2026-11-18",
+        "last_confirmed": "2026-11-19",
         "discovery": {
           "n_eligible": 31,
           "candidate_only": 30,
