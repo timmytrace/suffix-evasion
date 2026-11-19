@@ -1,0 +1,25 @@
+#!/bin/sh
+# Block commits that contain credentials.
+#
+# Enable once per clone:
+#     git config core.hooksPath .githooks
+#
+# Bypass (only when you are certain, e.g. adding a documented fixture):
+#     git commit --no-verify
+#
+# CI runs the same scan over all tracked files, so a bypass here is caught there.
+
+if command -v python3 >/dev/null 2>&1; then
+    PY=python3
+elif command -v python >/dev/null 2>&1; then
+    PY=python
+else
+    echo "pre-commit: python not found, skipping secret scan" >&2
+    exit 0
+fi
+
+"$PY" scripts/secret_scan.py --staged || {
+    echo "" >&2
+    echo "Commit aborted by secret scan." >&2
+    exit 1
+}
