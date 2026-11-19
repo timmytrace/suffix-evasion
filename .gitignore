@@ -5,3 +5,14 @@ venv/
 logs/
 *.eval
 .DS_Store
+
+# Environment files. This repository had no rule for these at all, in a public
+# repository whose guardrail adapters read NVIDIA_API_KEY and Hugging Face
+# tokens from the environment - so a .env written while debugging an adapter
+# was one `git add -A` away from being published.
+#
+# Keys belong in the environment, never in a file here. See the README's note
+# on running the NVIDIA-hosted self-check.
+.env
+.env.*
+!.env.example
