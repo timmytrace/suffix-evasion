@@ -13,6 +13,29 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Public repository, so a committed credential is readable the moment it is
+  # pushed. This matters more here than the file count suggests: running the
+  # eval against NVIDIA-hosted models and gated Hugging Face models means
+  # `nvapi-` and `hf_` tokens are handled on the same machine as this
+  # checkout, and the obvious accident is pasting one into a config example.
+  #
+  # Outside the matrix on purpose - the scan does not vary by Python version,
+  # and running it three times would just be three chances to read the same
+  # answer.
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # --all scans tracked files, which is what can reach the remote. The
+      # local pre-commit hook is opt-in and can be bypassed with --no-verify,
+      # so the same scan runs here where it cannot be skipped.
+      - name: Scan tracked files for credentials
+        run: python scripts/secret_scan.py --all
+
   test:
     runs-on: ubuntu-latest
     strategy:
