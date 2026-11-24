@@ -3,7 +3,7 @@
 
 Why this exists
 ---------------
-A review of MagNumAI-Identity found a live SECRET_KEY and the admin password
+A review of the gateway repository found a live SECRET_KEY and the admin password
 committed in `.env.example`, in a repository that was public at the time. Both
 values were valid. The fix was not a grep for one credential class - that does
 not generalise - but a check for all of them on every commit, so nobody has to
@@ -16,7 +16,7 @@ Shared file
 -----------
 Byte-identical copies live in three repositories:
 
-    MagNumAI-Identity/scripts/secret_scan.py
+    timlin-gateway/scripts/secret_scan.py
     timlin-connect/scripts/secret_scan.py
     suffix-evasion/scripts/secret_scan.py
 
