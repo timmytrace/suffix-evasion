@@ -1,6 +1,6 @@
 {
   "guardrail": "heuristic-reference",
-  "date": "2026-11-19",
+  "date": "2026-11-26",
   "dataset": "xTRam1/safe-guard-prompt-injection",
   "dataset_seed": 11,
   "dataset_limit": 240,
@@ -14,7 +14,7 @@
     "confirmation": 120
   },
   "guardrail_calls": 6600,
-  "seconds": 0.2,
+  "seconds": 0.1,
   "verdict_counts": {
     "promoted": 12,
     "no_effect": 43,
